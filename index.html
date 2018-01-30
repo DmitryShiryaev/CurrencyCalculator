@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<meta lang='en' />
+<meta charset='utf-8' />
+<title>Currency calculator</title>
+
+<head>     
+    <script>
+		'use strict';
+		/* best way to save rates in localStorage and update once a day 
+		   rates = localStorage.getItem('rates') || [] */
+		let rates = [];
+		
+		/* base Currency */
+		let baseCurrncy = "USD";		
+				
+		/* char codes of currencies*/
+		const currency_codes = ['RUB','EUR','USD','GBP','JPY'];
+		/* CBR daily currency url */
+		const cbr_daily = 'https://www.cbr-xml-daily.ru/daily_json.js';
+		
+		/* get List of currency for today */
+		function getCurrentCurrencyList(card,callback){	
+			if(rates.length == 0){
+				fetch(cbr_daily, {mode: 'cors', method: 'get'})
+				.then(function(response) {
+				
+					let contentType = response.headers.get("content-type");	
+					if(contentType && (contentType.includes("application/javascript") || contentType.includes("application/json")))
+						return response.json();		
+
+					throw new TypeError("We haven't got JSON!");
+				})
+				.then(function(json){
+					for(let i in currency_codes){	
+						let key = currency_codes[i];
+						if(key === 'RUB' && json.Valute[baseCurrncy].Value != 0 )
+							rates.push(1*json.Valute[baseCurrncy].Value);
+						else 
+							rates.push(rates[0]/json.Valute[key].Value);
+					}
+					return;
+				})
+				.then(function(){					
+					if(typeof callback == 'function')
+						callback(summaryCard(card));
+				})
+				.catch( function(reason) {
+					console.error("Currency List get failed : " + reason);
+				});
+			}	
+		}
+		
+		/* summ of cart */
+		function summ(card){
+			let sum = 0;
+			for (let i in card)
+				sum += card[i].price;
+				
+			return sum;
+		}
+		
+		/* Returning template */
+		function summaryCard(card){	
+			let summary = summ(card);
+			let res = { 
+			   'rubles': summary*rates[0],
+			   'euros': summary*rates[1],
+			   'US dollars': summary*rates[2],
+			   'pounds': summary*rates[3],
+			   'yens': summary*rates[4]
+			};
+			
+			return res;
+		}		
+		
+		function Log(text){
+			console.log(text);
+		}		
+		
+		/* Test */
+		
+		const selectedCart = [
+		   { price: 20 },
+		   { price: 45 },
+		   { price: 67 },
+		   { price: 1305 }
+		];
+		
+		getCurrentCurrencyList(selectedCart,Log);
+    </script> 
+</head>
+<body> 
+</body>
+
+</html>
